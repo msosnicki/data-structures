@@ -5,6 +5,8 @@ import Control.Monad
 import Data.Array
 import Data.Char
 import Data.List
+import qualified Data.Sequence as S
+import qualified Data.Foldable as F
 import System.IO
 -- height of tree
 
@@ -18,23 +20,20 @@ main =
   let t = tree nodes
   in putStrLn $ show $ depth t
 
-depth :: Array Int [Int] -> Int
+-- depth :: Array Int [Int] -> Int
 depth tree = depth' tree (-1)
 
-depth' :: Array Int [Int] -> Int -> Int
+-- depth' :: Array Int [Int] -> Int -> Int
 depth' tree i =
   let children = tree ! i
-  in if(null children) then 0 else (1+) $ maximum $ map (depth' tree) children
+  in if(S.null children) then 0 else (1+) $ F.maximum $ fmap (depth' tree) children
 
 tree nodes =
   let size = length nodes - 1
       zipped = zip [0..size] nodes
-      uf [] = Nothing
-      uf ((i,p):t) =
-        let e = [(i,[]), (p, [i])]
-        in Just $ (e,t)
-      joined = join $ unfoldr uf zipped
-  in accumArray (++) [] (-1, size) joined
+      m (i, p) = [(i, S.empty), (p, S.singleton i)]
+      joined = concatMap m zipped
+  in accumArray (S.><) S.empty (-1, size) joined
 -- IO related stuff
 
 nextNums n = sequence $ replicate n nextNum
