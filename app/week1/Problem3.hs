@@ -2,19 +2,31 @@ module Problem3 where
 
 import Control.Applicative
 import Data.Char
+import Data.Maybe
 import Data.List
 import System.IO
 
 -- network simulation
 
+newtype Packet = Packet (Int, Int) deriving (Show)
+
 main :: IO ()
 main =
   hSetBuffering stdin NoBuffering >>= \_ ->
-  putStrLn "tete"
+  nextNum >>= \buffer ->
+  nextNum >>= \n ->
+  nextPackets n >>= \packets ->
+  putStrLn $ show $ packets 
+
+start :: Packet -> Int
+start (Packet (s, _)) = s
+
+duration :: Packet -> Int
+duration (Packet (_, d)) = d
 
 -- Queue
 
-data Queue a = Queue {enqueue :: [a], dequeue :: [a], size :: Int}
+data Queue a = Queue {enqueue :: [a], dequeue :: [a], size :: Int} deriving (Show)
 
 emptyQueue = Queue [] [] 0
 
@@ -28,9 +40,23 @@ pop q =
     ((h:t), _) -> (Just h, Queue (enqueue q) t (size q - 1))
     ([], e) -> pop $ Queue [] (reverse e) (size q)
 
--- IO related stuff
+dropWhileQ q p =
+  let (popped, rem) = pop q
+      next = popped >>= \e -> if(p e) then Just $ dropWhileQ rem p else Nothing
+  in fromMaybe q next
 
-nextNums n = sequence $ replicate n nextNum
+
+-- IO related stuff
+nextIOs io n = sequence $ replicate n io
+
+nextPacket =
+  nextNum >>= \start ->
+  nextNum >>= \duration ->
+  pure $ Packet (start, duration)
+
+nextPackets = nextIOs nextPacket
+
+nextNums = nextIOs nextNum
 
 nextNum = nextNum' ""
 
