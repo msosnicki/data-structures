@@ -12,6 +12,8 @@ import System.IO
 
 -- building heap from list (constant space on array)
 
+type Acc = (Int, [(Int, Int)])
+
 cmp = flip compare
 
 main :: IO ()
@@ -22,24 +24,21 @@ main =
   let result = stToIO $ buildTree nums
   in result >>= (putStrLn . show)
 
-buildTree :: [Int] -> ST s (Int, [Int])
+buildTree :: [Int] -> ST s (Acc, [Int])
 buildTree nums =
   let size = length nums
       array = newListArray (1, size) nums :: ST s (STArray s Int Int)
-      swaps = newSTRef 0
+      accum = newSTRef (0, [])
       upTo = size `div` 2
       toFix = [upTo, upTo - 1 .. 1]
-      fixing a s = sequence $ (\i -> siftDown a i s) <$> toFix
+      fixing arr acc = sequence $ (\i -> siftDown arr i acc) <$> toFix
   in
-    do a <- array
-       s <- swaps
-       fixing a s
-       (,) <$> readSTRef s <*> getElems a
+    do arr <- array
+       acc <- accum
+       fixing arr acc
+       (,) <$> readSTRef acc <*> getElems arr
 
-listToArray :: [a] -> ST s (STArray s Int a)
-listToArray l = newListArray (1, length l) l
-
-siftDown arr i count =
+siftDown arr i acc =
   readArray arr i >>= \element ->
   children arr i >>= \ch ->
   case ch of
@@ -47,15 +46,9 @@ siftDown arr i count =
     _ ->
       let (chI, chV) = maxBy snd ch
           isBroken = cmp element chV == LT
-      in if(isBroken) then swap arr i chI count >> siftDown arr chI count else return ()
+      in if(isBroken) then swap arr i chI acc >> siftDown arr chI acc else return ()
 
 maxBy extract = maximumBy (\a b -> cmp (extract a) (extract b))
-
-  -- let isMax = (cmp toFix (maximumBy cmp [l,r])) /= GT
-  --     swapWith = if(isMax) then Just $ if(cmp l r == GT) then left i else right i else Nothing
-  --     swapOp j = swap arr i j count
-  -- in
-  --   fromMaybe (return ()) $ swapOp <$> swapWith
 
 children arr i =
   getBounds arr >>= \b ->
@@ -67,11 +60,13 @@ children arr i =
 swap arr i j c =
   readArray arr i >>= \iv ->
   readArray arr j >>= \jv ->
-  readSTRef c >>= \count ->
-  writeArray arr i jv >> writeArray arr j iv >> writeSTRef c (count + 1)
+  readSTRef c >>= \acc ->
+  let (count, swaps) = acc
+  in writeArray arr i jv >> writeArray arr j iv >> writeSTRef c (count + 1, (i, j) : swaps)
 
 left i = 2*i
 right i = 2*i + 1
+
 -- IO related stuff
 nextIOs io n = sequence $ replicate n io
 
