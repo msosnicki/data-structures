@@ -62,7 +62,7 @@ swap arr i j c =
   readArray arr j >>= \jv ->
   readSTRef c >>= \acc ->
   let (count, swaps) = acc
-  in writeArray arr i jv >> writeArray arr j iv >> writeSTRef c (count + 1, (i, j) : swaps)
+  in writeArray arr i jv >> writeArray arr j iv >> writeSTRef c (count + 1, (i - 1, j - 1) : swaps)
 
 left i = 2*i
 right i = 2*i + 1
