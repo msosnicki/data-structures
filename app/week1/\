@@ -8,41 +8,25 @@ import System.IO
 
 -- network simulation
 
+newtype Packet = Packet (Int, Int) deriving (Show)
+
 main :: IO ()
 main =
   hSetBuffering stdin NoBuffering >>= \_ ->
   nextNum >>= \buffer ->
   nextNum >>= \n ->
   nextPackets n >>= \packets ->
-  let solved = map start $ solve packets buffer
-      report = sequence $ map (putStrLn . show) solved
-  in () <$ report 
+  putStrLn $ show $ packets 
 
-solve packets buffer =
-  let scanned = scanl (f buffer) emptyAcc packets
-  in tail scanned
+start :: Packet -> Int
+start (Packet (s, _)) = s
 
-f buffer (Acc (queue, lastFinish, start)) p@(Packet (arrived, duration)) =
-  let queueAtT = dropWhileQ queue ((<=arrived) . end)
-      nextStart = max lastFinish arrived
-      p' = Packet (nextStart, nextStart + duration)
-  in
-    if(size queueAtT >= buffer)
-    then Acc (queueAtT, lastFinish, -1)
-    else Acc (push queueAtT p', nextStart + duration, nextStart)
+duration :: Packet -> Int
+duration (Packet (_, d)) = d
 
--- Utils
-newtype Packet = Packet (Int, Int) deriving (Show)
-arrival :: Packet -> Int
-arrival (Packet(a, _)) = a
-end :: Packet -> Int
-end (Packet(_, e)) = e
-
-newtype Acc = Acc (Queue Packet, Int, Int) deriving (Show)
-start :: Acc -> Int
-start (Acc(_, _, s)) = s
-emptyAcc = Acc (emptyQueue, 0, 0)
 -- Queue
+
+type PacketQueue = Queue Packet
 
 data Queue a = Queue {enqueue :: [a], dequeue :: [a], size :: Int} deriving (Show)
 
