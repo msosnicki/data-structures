@@ -4,6 +4,7 @@ module Problem1 where
 import Control.Applicative
 import Control.Monad.ST
 import Data.STRef
+import Data.Foldable (for_)
 import Data.Array.ST
 import Data.Char
 import Data.Maybe
@@ -22,7 +23,9 @@ main =
   nextNum >>= \n ->
   nextNums n >>= \nums ->
   let result = stToIO $ buildTree nums
-  in result >>= (putStrLn . show)
+      printTuple = \(a, b) -> putStrLn $ concat [show a, " ", show b]
+  in result >>= \((swapNo, swaps), _) ->
+    putStrLn (show swapNo) >> for_ (reverse swaps) printTuple
 
 buildTree :: [Int] -> ST s (Acc, [Int])
 buildTree nums =
