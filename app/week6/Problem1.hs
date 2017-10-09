@@ -10,32 +10,30 @@ import qualified Data.List as L
 import System.IO
 
 -- Traversals of a binary tree
+type Print = IO ()
 
 main :: IO ()
 main = do
   hSetBuffering stdin NoBuffering
   n <- nextNum
   nodes <- readNodes n
-  let inOrder = traverseIn nodes
-  printOrder inOrder
-  printOrder $ traversePre nodes
-  printOrder $ traversePost nodes
+  traverseIn nodes
+  traversePre nodes
+  traversePost nodes
 
-printOrder :: (Show a, T.Traversable t) => t a -> IO ()
-printOrder s = F.traverse_ (\num -> putStr $ concat [show num, " "]) s >> putStr "\n"
-
-traverse f nodes = loop 0
+traverseTree f nodes = loop 0 >> putStr "\n"
   where loop i = 
           let (k, l, r) = Seq.index nodes i
-              left = if(l == -1) then [] else loop l
-              right = if(r == -1) then [] else loop r
-          in f left ([k]) right
+              left = if(l == -1) then return () else loop l
+              right = if(r == -1) then return () else loop r
+              key = putStr $ concat [show k, " "]
+          in (f left key right)
 
-traverseIn = traverse (\left key right -> left ++ key ++ right)
+traverseIn = traverseTree (\left key right -> left >> key >> right)
 
-traversePre = traverse (\left key right -> key ++ left ++ right)
+traversePre = traverseTree (\left key right -> key >> left >> right)
 
-traversePost = traverse (\left key right -> left ++ right ++ key)
+traversePost = traverseTree (\left key right -> left >> right >> key)
 
 type NodeInfo = (Int, Int, Int)
 
