@@ -39,7 +39,7 @@ traversePost = traverse (\left key right -> left ++ right ++ key)
 
 type NodeInfo = (Int, Int, Int)
 
-readNodes = nextIOs' readNode
+readNodes = nextIOs readNode
 
 readNode = do
   k <- nextNum
@@ -48,10 +48,9 @@ readNode = do
   return (k, l, r)
 
 -- IO related stuff
-nextIOs' io n = T.sequence $ Seq.replicate n io
-nextIOs io n = sequence $ replicate n io
+nextIOs io n = Seq.replicateM n io
 
-nextNums = nextIOs nextNum
+nextNums n = (F.toList) <$> (nextIOs nextNum n)
 nextNum = nextNum' ""
 
 nextNum' :: (Integral a, Read a) => String -> IO a
