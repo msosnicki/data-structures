@@ -1,15 +1,13 @@
 module Problem1 where
 
 import Control.Applicative
-import Control.Monad.State
 import Data.Char
+import qualified Data.Foldable as F
 import qualified Data.Set as Set
 import qualified Data.Sequence as Seq
 import qualified Data.Traversable as T
 import qualified Data.List as L
 import System.IO
-
-import Debug.Trace
 
 -- Traversals of a binary tree
 
@@ -17,51 +15,31 @@ main :: IO ()
 main = do
   hSetBuffering stdin NoBuffering
   n <- nextNum
-  t <- readTree n
-  let in' = traverseIn t
-      pre = traversePre t
-      post = traversePost t
-      printOrd o = putStrLn $ L.intercalate " " $ show <$> o
-  printOrd in'
-  printOrd pre
-  printOrd post
+  nodes <- readNodes n
+  let inOrder = traverseIn nodes
+  printOrder inOrder
+  printOrder $ traversePre nodes
+  printOrder $ traversePost nodes
 
-traverseIn Leaf = []
-traverseIn (Node l k r) = (traverseIn l) ++ [k] ++ (traverseIn r)
+printOrder :: (Show a, T.Traversable t) => t a -> IO ()
+printOrder s = F.traverse_ (\num -> putStr $ concat [show num, " "]) s >> putStr "\n"
 
-traversePre Leaf = []
-traversePre (Node l k r) = [k] ++ (traversePre l) ++ (traversePre r)
+traverse f nodes = loop 0
+  where loop i = 
+          let (k, l, r) = Seq.index nodes i
+              left = if(l == -1) then [] else loop l
+              right = if(r == -1) then [] else loop r
+          in f left ([k]) right
 
-traversePost Leaf = []
-traversePost (Node l k r) = (traversePost l) ++ (traversePost r) ++ [k]
+traverseIn = traverse (\left key right -> left ++ key ++ right)
 
--- tree
-data Tree a = Leaf | Node {left :: Tree a, key :: a, right :: Tree a} deriving Show
+traversePre = traverse (\left key right -> key ++ left ++ right)
+
+traversePost = traverse (\left key right -> left ++ right ++ key)
 
 type NodeInfo = (Int, Int, Int)
 
-leftChild (l, _, _) = l
-rightChild (_, _, r) = r
-
-buildTree :: Int -> Seq.Seq NodeInfo -> Tree Int
-buildTree (-1) nds = Leaf
-buildTree root nds = Node (buildTree l nds) key (buildTree r nds)
-  where (key, l, r) = Seq.index nds root
-
-readTree :: Int -> IO (Tree Int)
-readTree n = (\(n, root) -> buildTree root n) <$> withRoot
-  where nodes = runStateT (nextIOs' readNodeS n) (Set.fromList [0..(n-1)])
-        withRoot = (\(n, roots) -> (n, head $ Set.toList roots)) <$> nodes
-
-readNodeS :: StateT (Set.Set Int) IO NodeInfo 
-readNodeS = do
-  roots <- get
-  nd <- liftIO readNode
-  put $ Set.difference roots (Set.fromList [leftChild nd, rightChild nd])
-  return nd
-
-io :: IO a -> StateT (Set.Set Int) IO a
-io = liftIO
+readNodes = nextIOs' readNode
 
 readNode = do
   k <- nextNum
